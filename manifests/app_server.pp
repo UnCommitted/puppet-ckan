@@ -3,6 +3,16 @@ class ckan::app_server (
   $ckan_node_id,
 ) {
 
+  # Required packages
+  package {
+    [
+      'python-virtualenv',
+      'python-pip',
+      'libpq-dev',
+    ]:
+      ensure => 'installed';
+  }
+
   # Create the ckan user and groups
   group { 'ckan_group':
     name   => 'ckan',
