@@ -3,7 +3,8 @@
 # NOTE: This only currently works on UBUNTU.
 class ckan::index (
   # Name of the collective CKAN Node (dev/prod/test)
-  $ckan_node_id
+  $ckan_node_id,
+  $ckan_version
 ) {
 
   # Install and configure tomcat
@@ -11,7 +12,10 @@ class ckan::index (
     install_from_source => false,
   }->
 
-  package { 'solr-tomcat':
+  package { [
+      'solr-tomcat',
+      'git'
+    ]:
     ensure => 'installed'
   }->
 
@@ -42,6 +46,14 @@ class ckan::index (
       target  => '/etc/solr/solr-tomcat.xml',
       require => File['indexhost_solr_config_directory'];
 
+  }->
+
+  # Download the appropriate version of the solr schema
+  exec { 'download_solr_configuration':
+    command  => "cd /usr/share/solr/collection1/conf && wget https://raw.githubusercontent.com/ckan/ckan/ckan-${ckan_version}/ckan/config/solr/schema.xml && chown tomcat.tomcat *.xml",
+    provider => 'shell',
+    creates  => '/usr/share/solr/collection1/conf/schema.xml',
+    requires => Package['git'];
   }->
 
   # Actually start the service
