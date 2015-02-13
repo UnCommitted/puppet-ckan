@@ -95,6 +95,19 @@ class ckan::app_server (
         Group['ckan_group']
       ];
 
+    # WSGI configuration
+    "/etc/ckan/${ckan_node_id}/apache-${ckan_node_id}.wsgi":
+      ensure  => 'present',
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0644',
+      content => template('ckan/app/apache.wgsi.erb'),
+      require => [
+        File["/etc/ckan/${ckan_node_id}"],
+        User['ckan_user'],
+        Group['ckan_group']
+      ];
+
     "/var/lib/ckan/${ckan_node_id}":
       ensure  => 'directory',
       owner   => 'ckan',
@@ -176,8 +189,14 @@ class ckan::app_server (
       creates  => "/etc/ckan/${ckan_node_id}/who.ini",
       provider => 'shell',
       require  => File["/etc/ckan/${ckan_node_id}"];
-  }
 
+    'initialize_paster':
+      command         => ". /var/lib/ckan/${ckan_node_id}/ckan/bin/activate && paster db init -c /etc/ckan/${ckan_node_id}/${ckan_node_id}.ini",
+      provider        => 'shell',
+      subscribe       => Exec["get_ckan_ini_file"],
+      user            => 'ckan',
+      refreshonly     => true;
+  }
 
 }
 
