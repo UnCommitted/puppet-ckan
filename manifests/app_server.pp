@@ -21,6 +21,10 @@ class ckan::app_server (
   # Hostname to get to the database server
   $db_hostname,
 
+  # Web Server Setup
+  $site_url,
+  $server_aliases = [],
+
   # Hostname of the database server
   $index_hostname,
 
@@ -52,6 +56,63 @@ class ckan::app_server (
     $datastore_db_user_real = "datastore_${ckan_node_id}"
   } else {
     $datastore_db_user_real = $datastore_db_user
+  }
+
+  # Apache and wsgi configuration
+  class { 'apache':
+    default_vhost => false,
+  }
+
+  contain '::apache::mod::wsgi'
+  contain '::apache::mod::ssl'
+
+  # Create some apache related directories
+  file {
+    '/var/www/ckan':
+      ensure => 'directory',
+      mode   => '0700',
+      owner  => 'root',
+      group  => 'root';
+
+    "/var/www/ckan/${ckan_node_id}":
+      ensure  => 'directory',
+      mode    => '0700',
+      owner   => 'root',
+      group   => 'root',
+      require => File['/var/www/ckan'];
+
+    "/var/log/apache2/${site_url}_error_ssl.log":
+      ensure  => 'present',
+      mode    => '0640',
+      owner   => 'root',
+      group   => 'adm';
+  }
+
+  apache::vhost { "${site_url}":
+    # General Configuration
+    docroot                     => "/var/www/ckan/${ckan_node_id}",
+    serveraliases               => $server_aliases,
+    ip                          => "${::ipaddress_eth0}",
+    ssl                         => true,
+    port                        => '443',
+
+    # WSGI Setup for CKAN
+    wsgi_daemon_process         => "ckan_${ckan_node_id}",
+    wsgi_daemon_process_options => {
+      processes    => '2',
+      threads      => '15',
+      display-name => "ckan_${ckan_node_id}",
+    },
+    wsgi_process_group          => "ckan_${ckan_node_id}",
+    wsgi_script_aliases         => {
+      '/' => "/etc/ckan/${ckan_node_id}/apache-${ckan_node_id}.wsgi"
+    },
+    wsgi_chunked_request        => 'On',
+    wsgi_pass_authorization     => 'On',
+    require                     => File[
+      "/var/www/ckan/${ckan_node_id}",
+      "/var/log/apache2/${site_url}_error_ssl.log"
+    ]
   }
 
   # Create the ckan user and groups
@@ -101,7 +162,7 @@ class ckan::app_server (
       owner   => 'root',
       group   => 'root',
       mode    => '0644',
-      content => template('ckan/app/apache.wgsi.erb'),
+      content => template('ckan/app/apache.wsgi.erb'),
       require => [
         File["/etc/ckan/${ckan_node_id}"],
         User['ckan_user'],
@@ -153,6 +214,10 @@ class ckan::app_server (
     ];
   }
 
+  File <| title == "/var/lib/ckan/${ckan_node_id}/ckan" |> {
+    mode => '0755'
+  }
+
   # Install CKAN
   python::pip { 'ckan' :
     pkgname    => 'git+https://github.com/ckan/ckan.git@ckan-2.2.1#egg=ckan',
@@ -160,7 +225,10 @@ class ckan::app_server (
     virtualenv => "/var/lib/ckan/${ckan_node_id}/ckan",
     owner      => 'ckan',
     timeout    => 0,
-    require    => Python::Virtualenv["/var/lib/ckan/${ckan_node_id}/ckan"];
+    require    => [
+      Python::Virtualenv["/var/lib/ckan/${ckan_node_id}/ckan"],
+      File["/var/lib/ckan/${ckan_node_id}/ckan"]
+    ];
    }
 
   # Get the requirements file
@@ -180,7 +248,7 @@ class ckan::app_server (
       Python::Pip['ckan'],
       Exec['get_requirements_file']
     ];
-  }
+  }->
 
   exec {
     # Get the ini file
@@ -191,11 +259,21 @@ class ckan::app_server (
       require  => File["/etc/ckan/${ckan_node_id}"];
 
     'initialize_paster':
-      command         => ". /var/lib/ckan/${ckan_node_id}/ckan/bin/activate && paster db init -c /etc/ckan/${ckan_node_id}/${ckan_node_id}.ini",
-      provider        => 'shell',
-      subscribe       => Exec["get_ckan_ini_file"],
-      user            => 'ckan',
-      refreshonly     => true;
+      command     => ". /var/lib/ckan/${ckan_node_id}/ckan/bin/activate && paster db init -c /etc/ckan/${ckan_node_id}/${ckan_node_id}.ini",
+      provider    => 'shell',
+      subscribe   => Exec["get_ckan_ini_file"],
+      user        => 'ckan',
+      refreshonly => true;
+  }->
+
+  file {
+    # Make the wsgi configuration script executable by apache.
+    'set_wsgi_script_to_executable':
+      path   => "/var/lib/ckan/${ckan_node_id}/ckan/bin/activate_this.py",
+      ensure => 'present',
+      owner  => 'www-data',
+      group  => 'www-data',
+      mode   => '0755';
   }
 
 }
