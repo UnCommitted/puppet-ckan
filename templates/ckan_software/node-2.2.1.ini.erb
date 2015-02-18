@@ -43,10 +43,10 @@ who.log_file = %(cache_dir)s/who_log.ini
 
 
 ## Database Settings
-sqlalchemy.url = postgresql://<%= @ckan_db_user_real -%>:<%= @ckan_db_password -%>@<%= @db_hostname -%>/<%= @ckan_db_name_real %>
+sqlalchemy.url = postgresql://<%= @ckan_db_user -%>:<%= @ckan_db_password -%>@<%= @db_hostname -%>/<%= @ckan_db_name %>?sslmode=disable
 
-ckan.datastore.write_url = postgresql://<%= @ckan_db_user_real -%>:<%= @ckan_db_password -%>@<%= @db_hostname -%>/<%= @ckan_db_name_real %>
-ckan.datastore.read_url = postgresql://<%= @datastore_db_user_real -%>:<%= @datastore_db_password -%>@<%= @db_hostname -%>/<%= @datastore_db_name_real %>
+ckan.datastore.write_url = postgresql://<%= @ckan_db_user -%>:<%= @ckan_db_password -%>@<%= @db_hostname -%>/<%= @datastore_db_name %>?sslmode=disable
+ckan.datastore.read_url = postgresql://<%= @datastore_db_user -%>:<%= @datastore_db_password -%>@<%= @db_hostname -%>/<%= @datastore_db_name %>?sslmode=disable
 
 
 ## Site Settings
@@ -70,8 +70,7 @@ ckan.auth.roles_that_cascade_to_sub_groups = admin
 ## Search Settings
 
 ckan.site_id = <%= @ckan_node_id %>
-solr_url = http://<%= @index_hostname -%>:8080/solr/ckan-schema-2.0
-
+solr_url = http://<%= @index_hostname -%>:8080/solr
 #ckan.simple_search = 1
 
 

@@ -2,10 +2,12 @@
 #
 # NOTE: This only currently works on UBUNTU.
 class ckan::index (
-  # Name of the collective CKAN Node (dev/prod/test)
-  $ckan_node_id,
-  $ckan_version
+  $ckan_node_id = $::ckan::params::ckan_node_id,
+  $ckan_version = $::ckan::params::ckan_version
 ) {
+
+  # I require params to be instantiated first
+  Class['ckan::params'] -> Class['ckan::index']
 
   # Install and configure tomcat
   class { 'tomcat':
@@ -50,10 +52,10 @@ class ckan::index (
 
   # Download the appropriate version of the solr schema
   exec { 'download_solr_configuration':
-    command  => "cd /usr/share/solr/collection1/conf && wget https://raw.githubusercontent.com/ckan/ckan/ckan-${ckan_version}/ckan/config/solr/schema.xml && chown tomcat.tomcat *.xml",
+    command  => "cd /usr/share/solr/conf && wget https://raw.githubusercontent.com/ckan/ckan/ckan-${ckan_version}/ckan/config/solr/schema.xml && chown tomcat.tomcat *.xml",
     provider => 'shell',
-    creates  => '/usr/share/solr/collection1/conf/schema.xml',
-    requires => Package['git'];
+    creates  => '/usr/share/solr/conf/schema.xml',
+    require  => Package['git'];
   }->
 
   # Actually start the service
