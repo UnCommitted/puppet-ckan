@@ -3,7 +3,7 @@ class ckan::params (
   ###############################
   ## CKAN APPLICATION SETTINGS ##
   ###############################
-  
+
   # Name of the collective CKAN Node (dev/prod/test)
   $ckan_node_id,
 
@@ -20,7 +20,7 @@ class ckan::params (
   $ckan_app_ip,
   $site_url,
   $server_aliases = [],
-  
+
   ###########################
   ## INDEX SERVER SETTINGS ##
   ###########################
@@ -45,11 +45,11 @@ class ckan::params (
 
   # Root password for the database server
   $postgres_password,
-  
+
   ####################################
   ## MISCELLANEOUS DEFAULT SETTINGS ##
   ####################################
-  
+
   # CKAN user and group names.
   $ckan_user             = 'ckan',
   $ckan_group            = 'ckan',

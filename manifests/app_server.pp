@@ -2,11 +2,11 @@
 class ckan::app_server (
 
   # Web Server Setup
-  $site_url,
-  $server_aliases = [],
+  $site_url       = $::ckan::params::site_url,
+  $server_aliases = $::ckan::params::server_aliases,
 
   # Hostname of the database server
-  $index_hostname,
+  $index_hostname = $::ckan::params::index_hostname,
 
   $ckan_version   = $::ckan::params::ckan_version,
   $ckan_node_id   = $::ckan::params::ckan_node_id
